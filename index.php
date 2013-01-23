@@ -79,6 +79,7 @@ a
 </style>
 </head>
 <body style="padding: 0; margin:0;">
+<a href="https://github.com/mevdschee/MinJS.org"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
 <div class="header">
 <div class="outer-version">
 <ul class="version">
