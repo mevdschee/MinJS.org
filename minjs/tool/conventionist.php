@@ -4,22 +4,32 @@ chdir('..');
 require "minjs_settings.php";
 $settings = $minjs_settings;
     
-Conventionist::print_check($settings['server'],$settings['username'],$settings['password'],$settings['database']); // parameters (server,username,password,database)
+// parameters (server,username,password,database)
+$errors = Conventionist::check($settings['server'],$settings['username'],$settings['password'],$settings['database']);
+echo Conventionist::html($errors); 
 
 class Conventionist
 {
-  public static function print_check($server,$username,$password,$database)
-  { $errors = Conventionist::check($server,$username,$password,$database);
-    echo "<h1>Conventionist</h1>";
-    echo "<table cellpadding=\"4\"><tr><th>#</th><th>type</th><th>table</th><th>field</th><th>message</th></tr>";
-    foreach($errors as $i=>$e) echo "<tr><td>".($i+1).".</td><td>$e[type]</td><td>$e[table]</td><td>$e[field]</td><td>$e[message]</td></tr>";
-    echo "</table>";
+  public static function html($errors)
+  { $str = "<h1>Conventionist</h1>";
+    $str.= "<table cellpadding=\"4\"><tr><th>#</th><th>type</th><th>table</th><th>field</th><th>message</th></tr>";
+    foreach($errors as $i=>$e) $str.= "<tr><td>".($i+1).".</td><td>$e[type]</td><td>$e[table]</td><td>$e[field]</td><td>$e[message]</td></tr>";
+    $str.= "</table>";
+    return $str;
+  }
+  
+  public static function text($errors)
+  { $str = "<h1>Conventionist</h1>";
+    $str.= "<table cellpadding=\"4\"><tr><th>#</th><th>type</th><th>table</th><th>field</th><th>message</th></tr>";
+    foreach($errors as $i=>$e) $str.= "<tr><td>".($i+1).".</td><td>$e[type]</td><td>$e[table]</td><td>$e[field]</td><td>$e[message]</td></tr>";
+    $str.= "</table>";
+    return $str;
   }
 
   public static function check($server,$username,$password,$database)
-  { Conventionist::connect($server,$username,$password,$database);
-    $tables = Conventionist::query("SELECT TABLE_NAME,TABLE_TYPE,ENGINE,TABLE_COLLATION FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name NOT like '%_history' AND table_name NOT like 'history'");
-    $foreign_keys = Conventionist::query_list("select concat(table_name, '.', column_name) as 'foreign_key', concat(referenced_table_name, '.', referenced_column_name) as 'references' from information_schema.key_column_usage where referenced_table_name is not null and table_schema=DATABASE()");
+  { static::connect($server,$username,$password,$database);
+    $tables = static::query("SELECT TABLE_NAME,TABLE_TYPE,ENGINE,TABLE_COLLATION FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name NOT like '%_history' AND table_name NOT like 'history'");
+    $foreign_keys = static::query_list("select concat(table_name, '.', column_name) as 'foreign_key', concat(referenced_table_name, '.', referenced_column_name) as 'references' from information_schema.key_column_usage where referenced_table_name is not null and table_schema=DATABASE()");
     $errors = array();
     $fieldsets = array();
     $tableNames = array();
@@ -27,7 +37,7 @@ class Conventionist
     for ($i=0;$i<count($tables);$i++)
     { $table = $tables[$i]['TABLE_NAME'];
       $safe_table = mysql_real_escape_string($table);
-      $fields=Conventionist::query("SELECT COLUMN_NAME,COLUMN_KEY,EXTRA FROM information_schema.columns WHERE table_schema=DATABASE() and table_name = '$safe_table'");
+      $fields=static::query("SELECT COLUMN_NAME,COLUMN_KEY,EXTRA FROM information_schema.columns WHERE table_schema=DATABASE() and table_name = '$safe_table'");
       // table checks:
       if (!preg_match('/^[a-z0-9_]+$/i',$table,$matches))
       { $errors[] = array('type'=>'error','table'=>$table,'message'=>'invalid table name');
@@ -70,7 +80,7 @@ class Conventionist
           if ($fields[$j]['EXTRA']=='auto_increment')
           { $errors[] = array('type'=>'error','table'=>$table,'field'=>$field,'message'=>'may not auto increment');
           }
-          $otherTable = Conventionist::pluralize(preg_replace('/_id$/','',$field));
+          $otherTable = static::pluralize(preg_replace('/_id$/','',$field));
           if (!in_array($otherTable,$tableNames))
           { $errors[] = array('type'=>'error','table'=>$table,'field'=>$field,'message'=>"table '$otherTable' should exist");
           }
@@ -172,3 +182,4 @@ class Conventionist
     return $string;
   }
 }
+
